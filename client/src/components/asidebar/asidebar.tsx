@@ -22,7 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Logo from "@/components/logo";
 import LogoutDialog from "./logout-dialog";
 import { WorkspaceSwitcher } from "./workspace-switcher";
@@ -30,14 +30,17 @@ import { NavMain } from "./nav-main";
 import { NavProjects } from "./nav-projects";
 import { Separator } from "../ui/separator";
 import useWorkspaceId from "@/hooks/use-workspace-id";
+import useAuth from "@/hooks/api/use-auth";
+import { useAuthContext } from "@/context/auth-provider";
 
 const Asidebar = () => {
+  const { isLoading,user} = useAuthContext();
   const { open } = useSidebar();
   const workspaceId = useWorkspaceId();
 
   const [isOpen, setIsOpen] = useState(false);
 
-  const isLoading = false;
+  
 
   return (
     <>
@@ -82,16 +85,23 @@ const Asidebar = () => {
                       className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                     >
                       <Avatar className="h-8 w-8 rounded-full">
+                        <AvatarImage
+                          src={user?.profilePicture || ""}
+                          alt={user?.name}
+                          
+                        />
                         <AvatarFallback className="rounded-full border border-gray-500">
-                          CN
+                          {user?.name?.split(" ")?.[0].charAt(0).toUpperCase() || "T"}
+                           {user?.name?.split(" ")?.[0].charAt(1).toUpperCase() || "T"}
                         </AvatarFallback>
+                           <AvatarImage/>
                       </Avatar>
                       <div className="grid flex-1 text-left text-sm leading-tight">
                         <span className="truncate font-semibold">
-                          Chile Brown
+                          {user?.name || "User Name"}
                         </span>
                         <span className="truncate text-xs">
-                          example@gmail.com
+                          {user?.email || "example@gmail.com"}
                         </span>
                       </div>
                       <EllipsisIcon className="ml-auto size-4" />
