@@ -30,7 +30,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     data:authData,
     error:authError,
     isLoading,
-    
     isFetching,
     refetch:refetchAuth,
   } = useAuth();
