@@ -16,27 +16,48 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { getAvatarColor } from "@/lib/helper";
+import { getAvatarColor, getAvatarFallbackText } from "@/lib/helper";
+import { useAuthContext } from "@/context/auth-provider";
+import useWorkspaceId from "@/hooks/use-workspace-id";
+import useGetWorkspaceMembers from "@/hooks/api/use-get-workspace-members";
+import { changeWorkspaceMemberRoleMutationFn } from "@/lib/api";
+import { useMutation } from "@tanstack/react-query";
 const AllMembers = () => {
-  const isPending = false;
+  const {user} = useAuthContext()
+  const workspaceId = useWorkspaceId()
 
+ const { data, isPending } = useGetWorkspaceMembers(workspaceId);
+  const members = data?.members || [];
+  const roles = data?.roles || [];
+
+  
+
+  
   const isLoading = false;
+
+
+
   return (
     <div className="grid gap-6 pt-2">
       {isPending ? (
         <Loader className="w-8 h-8 animate-spin place-self-center flex" />
       ) : null}
-      <div className="flex items-center justify-between space-x-4">
+      {members.map((member) => {
+        const name = member.userId?.name;
+        const initials = getAvatarFallbackText(name || "User");
+        const avatarColor = getAvatarColor(initials);
+        return (
+<div className="flex items-center justify-between space-x-4">
         <div className="flex items-center space-x-4">
           <Avatar className="h-8 w-8">
-            <AvatarImage src="/avatars/01.png" alt="Image" />
-            <AvatarFallback className={`${getAvatarColor("OM")}`}>
-              OM
+            <AvatarImage src={member.userId?.profilePicture || ""} alt="Image" />
+            <AvatarFallback className={`${avatarColor}`}>
+              {initials}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-sm font-medium leading-none">Sofia Davis</p>
-            <p className="text-sm text-muted-foreground">m@example.com</p>
+            <p className="text-sm font-medium leading-none">{name}</p>
+            <p className="text-sm text-muted-foreground">{member.userId?.email}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -47,12 +68,17 @@ const AllMembers = () => {
                 size="sm"
                 className="ml-auto min-w-24 capitalize disabled:opacity-95 disabled:pointer-events-none"
               >
-                Owner <ChevronDown className="text-muted-foreground" />
+                {member.role.name?.toLocaleLowerCase()}
+                {member.userId?._id !== user?._id && <ChevronDown className="text-muted-foreground" />}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="p-0" align="end">
               <Command>
-                <CommandInput placeholder="Select new role..." />
+              <CommandInput
+                        placeholder="Select new role..."
+                        disabled={isLoading}
+                        className="disabled:pointer-events-none"
+                      />
                 <CommandList>
                   {isLoading ? (
                     <Loader className="w-8 h-8 animate-spin place-self-center flex my-4" />
@@ -60,25 +86,33 @@ const AllMembers = () => {
                     <>
                       <CommandEmpty>No roles found.</CommandEmpty>
                       <CommandGroup>
-                        <CommandItem className="teamaspace-y-1 flex flex-col items-start px-4 py-2">
-                          <p>Owner</p>
-                          <p className="text-sm text-muted-foreground">
-                            Admin-level access to all resources.
-                          </p>
-                        </CommandItem>
-                        <CommandItem className="disabled:pointer-events-none gap-1 mb-1 flex flex-col items-start px-4 py-1 cursor-pointer">
-                          <p>Admin</p>
-                          <p className="text-sm text-muted-foreground">
-                            Can view, create, edit tasks, project and manage
-                            settings.
-                          </p>
-                        </CommandItem>
-                        <CommandItem className="disabled:pointer-events-none gap-1 mb-1 flex flex-col items-start px-4 py-1 cursor-pointer">
-                          <p>Member</p>
-                          <p className="text-sm text-muted-foreground">
-                            Can view,edit only task created by.
-                          </p>
-                        </CommandItem>
+                        {roles?.map(
+                                (role) =>
+                                  role.name !== "OWNER" && (
+                                    <CommandItem
+                                      key={role._id}
+                                      disabled={isLoading}
+                                      className="disabled:pointer-events-none gap-1 mb-1  flex flex-col items-start px-4 py-2 cursor-pointer"
+                                      onSelect={() => {
+                                        handleSelect(
+                                          role._id,
+                                          member.userId._id
+                                        );
+                                      }}
+                                    >
+                                      <p className="capitalize">
+                                        {role.name?.toLowerCase()}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        {role.name === "ADMIN" &&
+                                          `Can view, create, edit tasks, project and manage settings .`}
+
+                                        {role.name === "MEMBER" &&
+                                          `Can view,edit only task created by.`}
+                                      </p>
+                                    </CommandItem>
+                                  )
+                              )}
                       </CommandGroup>
                     </>
                   )}
@@ -88,6 +122,9 @@ const AllMembers = () => {
           </Popover>
         </div>
       </div>
+        )
+      })}
+      
     </div>
   );
 };
