@@ -1,8 +1,6 @@
 import { ChevronDown, Loader } from "lucide-react";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-
 import {
   Command,
   CommandEmpty,
@@ -21,19 +19,56 @@ import { useAuthContext } from "@/context/auth-provider";
 import useWorkspaceId from "@/hooks/use-workspace-id";
 import useGetWorkspaceMembers from "@/hooks/api/use-get-workspace-members";
 import { changeWorkspaceMemberRoleMutationFn } from "@/lib/api";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
+
+
+
+
 const AllMembers = () => {
   const {user} = useAuthContext()
+  const queryClient = useQueryClient();
   const workspaceId = useWorkspaceId()
 
  const { data, isPending } = useGetWorkspaceMembers(workspaceId);
   const members = data?.members || [];
   const roles = data?.roles || [];
 
-  
+  const {mutate,isPending:isLoading} = useMutation({
+    mutationFn: changeWorkspaceMemberRoleMutationFn,
+
+  });
 
   
-  const isLoading = false;
+    const handleSelect = (roleId: string, memberId: string) => {
+    if (!roleId || !memberId) return;
+    const payload = {
+      workspaceId,
+      data: {
+        roleId,
+        memberId,
+      },
+    };
+    mutate(payload, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: ["members", workspaceId],
+        });
+        toast({
+          title: "Success",
+          description: "Member's role changed successfully",
+          variant: "success",
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    });
+  };
 
 
 
