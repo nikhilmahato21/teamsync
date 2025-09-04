@@ -43,7 +43,7 @@ const InviteMember = () => {
         disable and create a new invite link for this Workspace at any time.
       </p>
 
-    
+      <PermissionsGuard showMessage requiredPermission={Permissions.ADD_MEMBER}>
         {workspaceLoading ? (
           <Loader
             className="w-8 h-8 
@@ -73,6 +73,9 @@ const InviteMember = () => {
             </Button>
           </div>
         )}
+      </PermissionsGuard>
+    
+        
       
     </div>
   );
