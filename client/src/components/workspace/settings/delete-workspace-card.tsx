@@ -53,7 +53,10 @@ const DeleteWorkspaceCard = () => {
           </h1>
         </div>
 
-        
+        <PermissionsGuard
+          showMessage
+          requiredPermission={Permissions.DELETE_WORKSPACE}
+        >
           <div className="flex flex-col items-start justify-between py-0">
             <div className="flex-1 mb-2">
               <p>
@@ -72,7 +75,7 @@ const DeleteWorkspaceCard = () => {
               Delete Workspace
             </Button>
           </div>
-        
+        </PermissionsGuard>
       </div>
 
       <ConfirmDialog
