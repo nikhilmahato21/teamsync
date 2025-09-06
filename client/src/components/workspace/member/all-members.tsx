@@ -1,6 +1,8 @@
 import { ChevronDown, Loader } from "lucide-react";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+
 import {
   Command,
   CommandEmpty,
@@ -18,29 +20,27 @@ import { getAvatarColor, getAvatarFallbackText } from "@/lib/helper";
 import { useAuthContext } from "@/context/auth-provider";
 import useWorkspaceId from "@/hooks/use-workspace-id";
 import useGetWorkspaceMembers from "@/hooks/api/use-get-workspace-members";
-import { changeWorkspaceMemberRoleMutationFn } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { changeWorkspaceMemberRoleMutationFn } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-
-
-
-
+import { Permissions } from "@/constant";
 const AllMembers = () => {
-  const {user} = useAuthContext()
-  const queryClient = useQueryClient();
-  const workspaceId = useWorkspaceId()
+  const { user, hasPermission } = useAuthContext();
 
- const { data, isPending } = useGetWorkspaceMembers(workspaceId);
+  const canChangeMemberRole = hasPermission?.(Permissions.CHANGE_MEMBER_ROLE);
+
+  const queryClient = useQueryClient();
+  const workspaceId = useWorkspaceId();
+
+  const { data, isPending } = useGetWorkspaceMembers(workspaceId);
   const members = data?.members || [];
   const roles = data?.roles || [];
 
-  const {mutate,isPending:isLoading} = useMutation({
+  const { mutate, isPending: isLoading } = useMutation({
     mutationFn: changeWorkspaceMemberRoleMutationFn,
-
   });
 
-  
-    const handleSelect = (roleId: string, memberId: string) => {
+  const handleSelect = (roleId: string, memberId: string) => {
     if (!roleId || !memberId) return;
     const payload = {
       workspaceId,
@@ -70,58 +70,70 @@ const AllMembers = () => {
     });
   };
 
-
-
   return (
     <div className="grid gap-6 pt-2">
       {isPending ? (
         <Loader className="w-8 h-8 animate-spin place-self-center flex" />
       ) : null}
-      {members.map((member) => {
+
+      {members?.map((member) => {
         const name = member.userId?.name;
-        const initials = getAvatarFallbackText(name || "User");
-        const avatarColor = getAvatarColor(initials);
+        const initials = getAvatarFallbackText(name);
+        const avatarColor = getAvatarColor(name);
         return (
-<div className="flex items-center justify-between space-x-4">
-        <div className="flex items-center space-x-4">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={member.userId?.profilePicture || ""} alt="Image" />
-            <AvatarFallback className={`${avatarColor}`}>
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="text-sm font-medium leading-none">{name}</p>
-            <p className="text-sm text-muted-foreground">{member.userId?.email}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="ml-auto min-w-24 capitalize disabled:opacity-95 disabled:pointer-events-none"
-              >
-                {member.role.name?.toLocaleLowerCase()}
-                {member.userId?._id !== user?._id && <ChevronDown className="text-muted-foreground" />}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="p-0" align="end">
-              <Command>
-              <CommandInput
+          <div className="flex items-center justify-between space-x-4">
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-8 w-8">
+                <AvatarImage
+                  src={member.userId?.profilePicture || ""}
+                  alt="Image"
+                />
+                <AvatarFallback className={avatarColor}>
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium leading-none">{name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {member.userId.email}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-auto min-w-24 capitalize disabled:opacity-95 disabled:pointer-events-none"
+                    disabled={
+                      isLoading ||
+                      !canChangeMemberRole ||
+                      member.userId._id === user?._id
+                    }
+                  >
+                    {member.role.name?.toLowerCase()}{" "}
+                    {canChangeMemberRole && member.userId._id !== user?._id && (
+                      <ChevronDown className="text-muted-foreground" />
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                {canChangeMemberRole && (
+                  <PopoverContent className="p-0" align="end">
+                    <Command>
+                      <CommandInput
                         placeholder="Select new role..."
                         disabled={isLoading}
                         className="disabled:pointer-events-none"
                       />
-                <CommandList>
-                  {isLoading ? (
-                    <Loader className="w-8 h-8 animate-spin place-self-center flex my-4" />
-                  ) : (
-                    <>
-                      <CommandEmpty>No roles found.</CommandEmpty>
-                      <CommandGroup>
-                        {roles?.map(
+                      <CommandList>
+                        {isLoading ? (
+                          <Loader className="w-8 h-8 animate-spin place-self-center flex my-4" />
+                        ) : (
+                          <>
+                            <CommandEmpty>No roles found.</CommandEmpty>
+                            <CommandGroup>
+                              {roles?.map(
                                 (role) =>
                                   role.name !== "OWNER" && (
                                     <CommandItem
@@ -148,18 +160,18 @@ const AllMembers = () => {
                                     </CommandItem>
                                   )
                               )}
-                      </CommandGroup>
-                    </>
-                  )}
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-        )
+                            </CommandGroup>
+                          </>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                )}
+              </Popover>
+            </div>
+          </div>
+        );
       })}
-      
     </div>
   );
 };
