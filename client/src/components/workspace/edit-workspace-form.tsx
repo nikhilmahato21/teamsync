@@ -15,15 +15,17 @@ import { Textarea } from "../ui/textarea";
 import { useAuthContext } from "@/context/auth-provider";
 import { useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import useWorkspaceId from "@/hooks/use-workspace-id";
 import { editWorkspaceMutationFn } from "@/lib/api";
+import useWorkspaceId from "@/hooks/use-workspace-id";
 import { toast } from "@/hooks/use-toast";
 import { Loader } from "lucide-react";
+import { Permissions } from "@/constant";
 
 export default function EditWorkspaceForm() {
+  const { workspace, hasPermission } = useAuthContext();
+  const canEditWorkspace = hasPermission?.(Permissions.EDIT_WORKSPACE);
 
-  const { workspace } = useAuthContext();
-const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
   const workspaceId = useWorkspaceId();
 
   const { mutate, isPending } = useMutation({
@@ -47,10 +49,10 @@ const queryClient = useQueryClient();
 
   useEffect(() => {
     if (workspace) {
-      form.setValue("name", workspace.name || "");
-      form.setValue("description", workspace.description || "");  
+      form.setValue("name", workspace.name);
+      form.setValue("description", workspace?.description || "");
     }
-  }, [workspace]);
+  }, [form, workspace]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (isPending) return;
@@ -76,7 +78,6 @@ const queryClient = useQueryClient();
       },
     });
   };
-
 
   return (
     <div className="w-full h-auto max-w-full">
@@ -104,7 +105,7 @@ const queryClient = useQueryClient();
                       <Input
                         placeholder="Taco's Co."
                         className="!h-[48px] disabled:opacity-90 disabled:pointer-events-none"
-                        disabled={false}
+                        disabled={!canEditWorkspace}
                         {...field}
                       />
                     </FormControl>
@@ -128,7 +129,7 @@ const queryClient = useQueryClient();
                     <FormControl>
                       <Textarea
                         rows={6}
-                        disabled={false}
+                        disabled={!canEditWorkspace}
                         className="disabled:opacity-90 disabled:pointer-events-none"
                         placeholder="Our team organizes marketing projects and tasks here."
                         {...field}
@@ -139,15 +140,16 @@ const queryClient = useQueryClient();
                 )}
               />
             </div>
-            {/* {canEditWorkspace && ( */}
-            <Button
-              className="flex place-self-end  h-[40px] text-white font-semibold"
-              disabled={isPending}
-              type="submit"
-            >
-              {isPending && <Loader className="animate-spin" />}
-              Update Workspace
-            </Button>
+            {canEditWorkspace && (
+              <Button
+                className="flex place-self-end  h-[40px] text-white font-semibold"
+                disabled={isPending}
+                type="submit"
+              >
+                {isPending && <Loader className="animate-spin" />}
+                Update Workspace
+              </Button>
+            )}
           </form>
         </Form>
       </div>
