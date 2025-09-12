@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -10,24 +9,37 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "../../ui/textarea";
+import EmojiPickerComponent from "@/components/emoji-picker";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "../../ui/textarea";
-import EmojiPickerComponent from "@/components/emoji-picker";
-import { ProjectType } from "@/types/api.type";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import useWorkspaceId from "@/hooks/use-workspace-id";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createProjectMutationFn } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
+import { Loader } from "lucide-react";
 
-export default function EditProjectForm(props: {
-  project?: ProjectType;
+export default function CreateProjectForm({
+  onClose,
+}: {
   onClose: () => void;
 }) {
-  const { onClose } = props;
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const workspaceId = useWorkspaceId();
 
   const [emoji, setEmoji] = useState("📊");
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: createProjectMutationFn,
+  });
 
   const formSchema = z.object({
     name: z.string().trim().min(1, {
@@ -49,8 +61,38 @@ export default function EditProjectForm(props: {
   };
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log(values);
-    onClose();
+    if (isPending) return;
+    const payload = {
+      workspaceId,
+      data: {
+        emoji,
+        ...values,
+      },
+    };
+    mutate(payload, {
+      onSuccess: (data) => {
+        const project = data.project;
+        queryClient.invalidateQueries({
+          queryKey: ["allprojects", workspaceId],
+        });
+
+        toast({
+          title: "Success",
+          description: "Project created successfully",
+          variant: "success",
+        });
+
+        navigate(`/workspace/${workspaceId}/project/${project._id}`);
+        setTimeout(() => onClose(), 500);
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   return (
@@ -61,10 +103,10 @@ export default function EditProjectForm(props: {
             className="text-xl tracking-[-0.16px] dark:text-[#fcfdffef] font-semibold mb-1
            text-center sm:text-left"
           >
-            Edit Project
+            Create Project
           </h1>
           <p className="text-muted-foreground text-sm leading-tight">
-            Update the project details to refine task management
+            Organize and manage tasks, resources, and team collaboration
           </p>
         </div>
         <Form {...form}>
@@ -97,7 +139,11 @@ export default function EditProjectForm(props: {
                       Project title
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="" className="!h-[48px]" {...field} />
+                      <Input
+                        placeholder="Website Redesign"
+                        className="!h-[48px]"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -130,9 +176,11 @@ export default function EditProjectForm(props: {
             </div>
 
             <Button
+              disabled={isPending}
               className="flex place-self-end  h-[40px] text-white font-semibold"
               type="submit"
             >
+              {isPending && <Loader className="animate-spin" />}
               Create
             </Button>
           </form>
