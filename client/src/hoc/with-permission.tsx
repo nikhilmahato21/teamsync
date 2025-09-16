@@ -15,7 +15,7 @@ const withPermission = (
     const workspaceId = useWorkspaceId();
 
     useEffect(() => {
-      if (!user || !hasPermission(requiredPermission)) {
+      if (!user || !hasPermission?.(requiredPermission)) {
         navigate(`/workspace/${workspaceId}`);
       }
     }, [user, hasPermission, navigate, workspaceId]);
@@ -25,7 +25,7 @@ const withPermission = (
     }
 
     // Check if user has the required permission
-    if (!user || !hasPermission(requiredPermission)) {
+    if (!user || !hasPermission?.(requiredPermission)) {
       return;
     }
     // If the user has permission, render the wrapped component

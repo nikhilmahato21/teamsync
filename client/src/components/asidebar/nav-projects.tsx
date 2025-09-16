@@ -124,6 +124,7 @@ export function NavProjects() {
                         <Folder className="text-muted-foreground" />
                         <span>View Project</span>
                       </DropdownMenuItem>
+                      <PermissionsGuard requiredPermission={Permissions.DELETE_PROJECT}>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         disabled={false}
@@ -132,6 +133,7 @@ export function NavProjects() {
                         <Trash2 className="text-muted-foreground" />
                         <span>Delete Project</span>
                       </DropdownMenuItem>
+                      </PermissionsGuard>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </SidebarMenuItem>
